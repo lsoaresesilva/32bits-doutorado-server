@@ -13,17 +13,18 @@ const io = socketIo(server);
 let usuariosConectados = new Set();
 
 
+
 io.on('connection', (socket) => {
-    console.log("Usuário conectado");
-    socket.on('conectado', (data) => {
-        console.log("Usuário conectados");
-        if(data != null){
-            socket.userId = data;
-            /*usuariosConectados.add(data);
-            io.emit("conectado", [...usuariosConectados]);*/
-            
-        }
-    });
+    
+    console.log("Conexão")
+    console.log("Sala "+socket.handshake.query.sala);
+
+    if(socket.handshake.query.sala){
+        console.log("Entrou na sala");
+        socket.join(socket.handshake.query.sala)
+    }
+        
+    
     
     socket.on('disconnect', () => {
         usuariosConectados.delete(socket.userId);
@@ -32,7 +33,9 @@ io.on('connection', (socket) => {
     socket.on('enviarMensagem', (data) => {
         console.log("Mensagem recebida")
         console.log(data)
-        io.emit('mensagemRecebida', data);
+        let salaId = Object.keys(socket.rooms)[0];
+        console.log("Sala "+salaId);
+        io.to(salaId).emit('mensagemRecebida', data);
     });
 });
 
