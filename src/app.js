@@ -3,8 +3,9 @@ const http = require("http");
 const socketIo = require("socket.io");
 const { dockStart } = require('@nlpjs/basic');
 const { InterpretationErrorFactory } = require('programming-monitor/src/programming_errors/interpretationErrorFactory');
-
-/* 
+const Estudante = require("./Estudante");
+const Edicao = require("./Edicao");
+const Algoritmo = require("./Algoritmo");
 const port = process.env.PORT || 4001;
 
 const app = express();
@@ -15,7 +16,7 @@ const io = socketIo(server);
 
 let usuariosConectados = new Set();
 
-
+let algoritmos = new Map();
 
 io.on('connection', (socket) => {
 
@@ -24,7 +25,22 @@ io.on('connection', (socket) => {
 
     if (socket.handshake.query.sala) {
         console.log("Entrou na sala");
-        socket.join(socket.handshake.query.sala)
+        socket.join(socket.handshake.query.sala);
+        let algoritmo = algoritmos.get(socket.handshake.query.sala);
+        if(algoritmo == null){
+            //let edicao = new Map();
+            //edicao.set(1, new Edicao(1, "", null));
+            //algoritmos.set(socket.handshake.query.sala, edicao);
+
+            algoritmo = new Algoritmo();
+            algoritmo.edicoes.push(new Edicao(1, "", null));
+            algoritmos.set(socket.handshake.query.sala, algoritmo);
+
+        }else{
+            console.log("Enviou algoritmo entrada")
+            io.to(socket.handshake.query.sala).emit('editorCodigo', algoritmo);
+        }
+        
     }
 
 
@@ -36,17 +52,31 @@ io.on('connection', (socket) => {
     socket.on('enviarMensagem', (data) => {
         console.log("Mensagem recebida")
         console.log(data)
-        let salaId = Object.keys(socket.rooms)[0];
+        let salaId = Object.keys(socket.rooms)[1];
         console.log("Sala " + salaId);
         io.to(salaId).emit('mensagemRecebida', data);
+    });
+
+    socket.on('editorKeyEvent', (data) => {
+        console.log("Edicao")
+        let salaId = Object.keys(socket.rooms)[1];
+        console.log("Data "+data);
+        let algoritmo = algoritmos.get(salaId);
+        if(algoritmo != null){
+            //algoritmo.edicoes.push(data.linha, new Edicao(data.linha, data.texto, data.estudante))
+            algoritmo.modificar(new Edicao(data.linha, data.texto, data.estudante))
+            // TODO: Verifica se na linha já tem edição
+            //algoritmos.set(socket.handshake.query.sala, edicoes);
+        }
+        io.to(salaId).emit('editorCodigo', algoritmo);
     });
 });
 
 server.listen(3001, () => {
     console.log('listening on *:3001');
 });
- */
-function iniciarChat() {
+
+/* function iniciarChat() {
     (async () => {
 
     })();
@@ -55,4 +85,4 @@ function iniciarChat() {
 iniciarChat();
 
 let x = InterpretationErrorFactory.build("bla");
-console.log(x)
+console.log(x) */
