@@ -11,17 +11,6 @@ const SalaChat = require("./SalaChat");
 
 let salas = new Map();
 
-/* shareDBServer.use("receive", function (request, next) {
-  var data = request.data;
-  if (data.tipo == "CHAT") {
-    // Handle app specific messages and don't call next
-    next();
-    //return;
-  }
-  // Call next to pass other messages to ShareDB
-  next();
-}); */
-
 wss.on("connection", function cnt(ws) {
   // For transport we are using a ws JSON stream for communication
   // that can read and write js objects.
@@ -29,20 +18,20 @@ wss.on("connection", function cnt(ws) {
   ws.on("message", (buffer) => {
     let data = JSON.parse(buffer);
 
-    if (!data.sala) return;
+    /* if (!data.sala) return;
 
     let sala = salas.get(data.sala);
     if (sala == null) {
       salas.set(data.sala, new SalaChat());
     }
 
-    sala = salas.get(data.sala);
+    sala = salas.get(data.sala); */
 
     if (data.tipo != null) {
-      if (data.tipo == "CHAT") {
+ /*      if (data.tipo == "CHAT") {
         sala.enviarMensagem(data.texto, data.estudante);
       } else if (data.tipo == "ACESSO") {
-        sala.adicionarEstudante(data.estudante, ws);
+        sala.adicionarEstudante(data.estudante, ws); */
         const doc = connection.get("documents", data.sala);
 
         doc.fetch(function (err) {
@@ -56,7 +45,7 @@ wss.on("connection", function cnt(ws) {
             // TODO: preciso modificar o objeto cursor para representar os dois usuários. Usar o insert no primeiro acesso para inserir uma chave como sendo o PK do usuário
 
             doc.create(
-              { algoritmo: [""], cursor: { lineNumber: 1, column: 1 } },
+              { algoritmo: [""], cursor: { lineNumber: 1, column: 1 }, autor:"" },
               () => {
                 ws.send(JSON.stringify({ tipo: "CONEXAO", status: "OK" }));
 
@@ -72,11 +61,13 @@ wss.on("connection", function cnt(ws) {
             shareDBServer.listen(jsonStream);
           }
         });
-      }
+      //}
     }
-    console.log("Conectou");
+    
     /*  */
   });
+
+  console.log("Conectou");
 });
 
 /* CHAT */
