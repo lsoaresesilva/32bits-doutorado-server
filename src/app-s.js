@@ -7,8 +7,6 @@ const connection = shareDBServer.connect();
 
 const wss = new WebSocket.Server({ port: 8080 });
 
-const SalaChat = require("./SalaChat");
-
 let salas = new Map();
 
 wss.on("connection", function cnt(ws) {
