@@ -1,0 +1,15 @@
+[Unit]
+Description=CSCL
+
+[Service]
+ExecStart=/home/lsoaresesilva/www/32bits-doutorado-server/src/app-s.js
+Restart=always
+User=nobody
+# Note Debian/Ubuntu uses 'nogroup', RHEL/Fedora uses 'nobody'
+Group=nogroup
+Environment=PATH=/usr/bin:/usr/local/bin
+Environment=NODE_ENV=production
+WorkingDirectory=/home/lsoaresesilva/www/32bits-doutorado-server
+
+[Install]
+WantedBy=multi-user.target
