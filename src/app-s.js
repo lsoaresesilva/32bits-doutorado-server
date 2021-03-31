@@ -1,75 +1,5 @@
 #!/usr/bin/env node
 
-const WebSocket = require("ws");
-const WebSocketJSONStream = require("@teamwork/websocket-json-stream");
-const ShareDB = require("sharedb");
-
-const shareDBServer = new ShareDB();
-const connection = shareDBServer.connect();
-
-const wss = new WebSocket.Server({ port: 8080 });
-
-let salas = new Map();
-
-wss.on("connection", function cnt(ws) {
-  // For transport we are using a ws JSON stream for communication
-  // that can read and write js objects.
-
-  ws.on("message", (buffer) => {
-    let data = JSON.parse(buffer);
-
-    /* if (!data.sala) return;
-
-    let sala = salas.get(data.sala);
-    if (sala == null) {
-      salas.set(data.sala, new SalaChat());
-    }
-
-    sala = salas.get(data.sala); */
-
-    if (data.tipo != null) {
- /*      if (data.tipo == "CHAT") {
-        sala.enviarMensagem(data.texto, data.estudante);
-      } else if (data.tipo == "ACESSO") {
-        sala.adicionarEstudante(data.estudante, ws); */
-        const doc = connection.get("documents", data.sala);
-
-        doc.fetch(function (err) {
-          if (err) throw err;
-          if (doc.type === null) {
-            /**
-             * If there is no document with id "firstDocument" in memory
-             * we are creating it and then starting up our ws server
-             */
-
-            // TODO: preciso modificar o objeto cursor para representar os dois usuários. Usar o insert no primeiro acesso para inserir uma chave como sendo o PK do usuário
-
-            doc.create(
-              { algoritmo: [""], cursor: { lineNumber: 1, column: 1 }, autor:"" },
-              () => {
-                ws.send(JSON.stringify({ tipo: "CONEXAO", status: "OK" }));
-
-                const jsonStream = new WebSocketJSONStream(ws);
-                shareDBServer.listen(jsonStream);
-              }
-            );
-            return;
-          } else {
-            ws.send(JSON.stringify({ tipo: "CONEXAO", status: "OK" }));
-
-            const jsonStream = new WebSocketJSONStream(ws);
-            shareDBServer.listen(jsonStream);
-          }
-        });
-      //}
-    }
-    
-    /*  */
-  });
-
-  console.log("Conectou");
-});
-
 /* CHAT */
 
 const socketIo = require("socket.io");
@@ -80,17 +10,59 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
+let estudantesConectados = new Map();
+
+function getSala(salaId) {
+  if (salaId != null) {
+    let sala = estudantesConectados.get(salaId);
+    if (sala == null) {
+      estudantesConectados.set(salaId, []);
+    }
+
+    return estudantesConectados.get(salaId);
+  }
+}
+
+function adicionarEstudanteSala(salaId, estudanteId) {
+  if (salaId != null && estudanteId != null) {
+    let sala = getSala(salaId);
+
+    if (!sala.includes(estudanteId)) {
+      sala.push(estudanteId);
+    }
+  }
+}
+
+function removerEstudanteSala(salaId, estudanteId) {
+  if (salaId != null && estudanteId != null) {
+    let sala = getSala(salaId);
+    const index = sala.indexOf(estudanteId);
+    if (index > -1) {
+      sala.splice(index, 1);
+    }
+  }
+}
+
 io.on("connection", (socket) => {
   console.log("Conexão");
   console.log("Sala " + socket.handshake.query.sala);
-
+  console.log("Usuario " + socket.handshake.query.estudanteId);
+  socket.estudanteId = socket.handshake.query.estudanteId;
   if (socket.handshake.query.sala) {
     console.log("Entrou na sala");
-    socket.join(socket.handshake.query.sala);
+    socket.join(socket.handshake.query.sala, () => {
+      let salaId = Object.keys(socket.rooms)[1];
+      socket.salaId = salaId;
+      adicionarEstudanteSala(salaId, socket.handshake.query.estudanteId);
+
+      io.to(salaId).emit("conexaoAluno", getSala(salaId));
+    });
+    socket.emit("conexao");
   }
 
   socket.on("disconnect", () => {
-    //usuariosConectados.delete(socket.userId);
+    removerEstudanteSala(socket.salaId, socket.estudanteId);
+    io.to(socket.salaId).emit("conexaoAluno", getSala(socket.salaId));
   });
 
   socket.on("enviarMensagem", (data) => {
