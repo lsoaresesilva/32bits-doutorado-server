@@ -1,16 +1,25 @@
 #!/usr/bin/env node
 
-/* CHAT */
 
+
+  
 const socketIo = require("socket.io");
-const http = require("http");
+const https = require("https");
 const express = require("express");
-
+const fs = require('fs');
 const app = express();
-const server = http.createServer(app);
+
+var https_options = {
+  key: fs.readFileSync("/etc/letsencrypt/live/32b.com.br/privkey.pem"),
+  cert: fs.readFileSync("/etc/letsencrypt/live/32b.com.br/fullchain.pem")
+  };
+
+const server = https.createServer(http_options, app);
 const io = socketIo(server);
 
 let estudantesConectados = new Map();
+
+
 
 function getSala(salaId) {
   if (salaId != null) {
